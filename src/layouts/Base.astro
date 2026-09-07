@@ -1,0 +1,129 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const {
+  title,
+  description = 'Portfolio of Advaith Prabhu — AI engineering and quantitative research.',
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230b0e12'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='14' fill='%2336f2c2' text-anchor='middle'%3EAP%3C/text%3E%3C/svg%3E"
+    />
+    <title>{title}</title>
+  </head>
+  <body>
+    <a class="skip" href="/#projects">Skip to projects</a>
+    <header class="site-header" id="site-header">
+      <div class="site-header__inner">
+        <button
+          class="site-header__menu"
+          type="button"
+          aria-expanded="false"
+          aria-controls="site-navigation"
+        >
+          Menu
+        </button>
+        <nav id="site-navigation" class="site-nav" aria-label="Primary">
+          <ul>
+            <li><a href="/#projects">Projects</a></li>
+            <li><a href="/blog/">Blog</a></li>
+            <li>
+              <a href="https://github.com/advaithprabhudev" target="_blank" rel="external noreferrer">GitHub</a>
+            </li>
+            <li>
+              <a href="https://www.linkedin.com/in/advaith-prabhu/" target="_blank" rel="external noreferrer">LinkedIn</a>
+            </li>
+            <li><a href="/#contact">Contact</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+    <main class="page" id="top">
+      <slot />
+    </main>
+    <footer class="footer" id="contact">
+      <div class="footer__inner">
+        <span>IB Diploma Candidate, GIIS Singapore — May 2027</span>
+        <span class="footer__sep" aria-hidden="true">·</span>
+        <a class="link" href="https://github.com/advaithprabhudev" target="_blank" rel="external noreferrer">
+          GitHub: <span class="link__mono"><strong>@advaithprabhudev</strong></span>
+        </a>
+        <span class="footer__sep" aria-hidden="true">·</span>
+        <a class="link" href="https://www.linkedin.com/in/advaith-prabhu/" target="_blank" rel="external noreferrer">
+          LinkedIn: <span class="link__mono"><strong>advaith-prabhu</strong></span>
+        </a>
+        <span class="footer__sep" aria-hidden="true">·</span>
+        <button class="email-btn link" type="button" data-email="prabhu.advaith@gmail.com">
+          email: <span class="link__mono"><strong>prabhu.advaith [at] gmail (dot) com</strong></span>
+        </button>
+        <span class="footer__sep" aria-hidden="true">·</span>
+        <button class="email-btn link" type="button" id="back-to-top">Back to top</button>
+      </div>
+    </footer>
+    <script>
+      const header = document.getElementById('site-header') as HTMLElement;
+      const menuBtn = header.querySelector('.site-header__menu') as HTMLButtonElement;
+      const nav = document.getElementById('site-navigation') as HTMLElement;
+      const compactQuery = window.matchMedia('(max-width: 719px)');
+
+      const syncCompact = () => {
+        header.classList.toggle('site-header--compact', compactQuery.matches);
+        if (!compactQuery.matches) {
+          nav.classList.remove('site-nav--open');
+          menuBtn.setAttribute('aria-expanded', 'false');
+        }
+      };
+      syncCompact();
+      compactQuery.addEventListener('change', syncCompact);
+
+      window.addEventListener(
+        'scroll',
+        () => header.classList.toggle('site-header--scrolled', window.scrollY > 8),
+        { passive: true },
+      );
+
+      menuBtn.addEventListener('click', () => {
+        const open = nav.classList.toggle('site-nav--open');
+        menuBtn.setAttribute('aria-expanded', String(open));
+      });
+
+      const toast = (message: string) => {
+        document.querySelector('.toast')?.remove();
+        const el = document.createElement('div');
+        el.className = 'toast';
+        el.setAttribute('role', 'status');
+        el.textContent = message;
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 2200);
+      };
+
+      document.querySelectorAll<HTMLButtonElement>('[data-email]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const email = btn.dataset.email as string;
+          navigator.clipboard
+            ?.writeText(email)
+            .then(() => toast(`copied ${email} to clipboard`))
+            .catch(() => toast(email));
+        });
+      });
+
+      document.getElementById('back-to-top')?.addEventListener('click', () => {
+        const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,57 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getCollection } from 'astro:content';
+
+const posts = (await getCollection('blog')).sort(
+  (a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
+);
+
+const formatDate = new Intl.DateTimeFormat('en-CA', {
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+---
+
+<Base
+  title="Blog — Advaith Prabhu"
+  description="Research notes on machine learning, quantitative strategies and applied mathematics by Advaith Prabhu."
+>
+  <div class="shell">
+    <header class="header header--plain" aria-label="Blog header">
+      <div class="header__content">
+        <p class="header__tagline">Blog</p>
+        <p class="header__description">
+          Research notes on machine learning, quantitative strategies and applied mathematics.
+        </p>
+      </div>
+    </header>
+    <section class="section" aria-labelledby="blog-title">
+      <h2 id="blog-title" class="sr-only">Posts</h2>
+      <div class="grid" role="list">
+        {
+          posts.map((post) => (
+            <article class="card" role="listitem" aria-labelledby={`post-${post.id}`}>
+              <div class="termbar">
+                <h3 id={`post-${post.id}`}>
+                  <a href={`/blog/${post.id}/`}>{post.data.title}</a>
+                </h3>
+                <span class="badge" data-type="research">
+                  {formatDate.format(post.data.date)}
+                </span>
+              </div>
+              <div class="content">
+                <p class="card__desc">{post.data.summary}</p>
+                <div class="links">
+                  <a class="btn btn--primary" href={`/blog/${post.id}/`}>
+                    Read post →
+                  </a>
+                </div>
+              </div>
+            </article>
+          ))
+        }
+      </div>
+    </section>
+  </div>
+</Base>

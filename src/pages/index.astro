@@ -1,0 +1,163 @@
+---
+import Base from '../layouts/Base.astro';
+import MarketBackground from '../components/MarketBackground.astro';
+import { getCollection } from 'astro:content';
+
+const projects = (await getCollection('projects')).sort(
+  (a, b) => a.data.order - b.data.order,
+);
+const posts = (await getCollection('blog')).sort(
+  (a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
+);
+const latest = posts[0];
+
+const slugify = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+
+const formatDate = new Intl.DateTimeFormat('en-CA', {
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+---
+
+<Base title="Advaith Prabhu // AI Engineering & Quantitative Research">
+  <MarketBackground />
+  <div class="shell">
+    <header class="header" aria-label="Site header">
+      <div class="header__content">
+        <p class="header__tagline">Quantitative CS Student | AI Engineer</p>
+        <p class="header__description">
+          I&rsquo;m an IB Diploma candidate in Singapore building at the intersection of machine
+          learning and markets &mdash; quantitative strategies, Monte Carlo methods, and AI systems
+          that ship.
+        </p>
+        <p class="header__teaser">Interested in quant research or AI engineering? Let&rsquo;s talk.</p>
+        <p class="header__meta">
+          <a
+            class="link"
+            href="https://github.com/advaithprabhudev"
+            target="_blank"
+            rel="external noreferrer"
+          >
+            github: <span class="link__mono"><strong class="highlight">@advaithprabhudev</strong></span>
+          </a>
+          <br />
+          <button class="link email-btn" type="button" data-email="prabhu.advaith@gmail.com">
+            email: <span class="link__mono"
+              ><strong class="highlight">prabhu.advaith [at] gmail (dot) com</strong></span
+            >
+          </button>
+        </p>
+      </div>
+    </header>
+
+    <section class="section" id="projects" aria-labelledby="projects-title">
+      <h2 id="projects-title" class="sr-only">Projects</h2>
+      <div class="grid" role="list">
+        {
+          latest && (
+            <a
+              class="card card--blog"
+              href={`/blog/${latest.id}/`}
+              aria-label={`Read latest blog post: ${latest.data.title}`}
+            >
+              <div class="blog-body">
+                <p class="eyebrow">Latest from the blog</p>
+                <h3>
+                  <span class="title">{latest.data.title}</span>
+                  <span class="date">
+                    <span aria-hidden="true">·</span>
+                    <span>{formatDate.format(latest.data.date)}</span>
+                  </span>
+                </h3>
+                <p class="summary">{latest.data.summary}</p>
+              </div>
+              <span class="read">Read post →</span>
+            </a>
+          )
+        }
+        {
+          projects.map((project) => {
+            const primary = project.data.links[0];
+            return (
+              <article class="card" role="listitem" aria-labelledby={`project-${project.id}`}>
+                <div class="termbar">
+                  <h3 id={`project-${project.id}`}>
+                    {primary ? (
+                      <a href={primary.url} target="_blank" rel="external noreferrer">
+                        {project.data.title}
+                      </a>
+                    ) : (
+                      project.data.title
+                    )}
+                  </h3>
+                  {primary ? (
+                    <a
+                      class="badge"
+                      data-type={project.data.badge.type}
+                      href={primary.url}
+                      target="_blank"
+                      rel="external noreferrer"
+                      aria-label={`View ${project.data.title} source`}
+                    >
+                      {project.data.badge.label}
+                    </a>
+                  ) : (
+                    <span class="badge" data-type={project.data.badge.type}>
+                      {project.data.badge.label}
+                    </span>
+                  )}
+                </div>
+                {
+                  project.data.media && (
+                    <div class="media">
+                      <img
+                        class="media__img"
+                        data-fit={project.data.media.fit}
+                        src={project.data.media.src}
+                        alt={project.data.media.alt}
+                        width="400"
+                        height="160"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </div>
+                  )
+                }
+                <div class="content">
+                  <p class="card__subtitle">{project.data.subtitle}</p>
+                  <p class="card__desc">{project.data.description}</p>
+                  <div class="tech-badges" aria-label="Technologies used">
+                    {project.data.tags.map((tag) => (
+                      <span class="tech-badge" data-tech={slugify(tag)}>
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                  {project.data.links.length > 0 && (
+                    <div class="links" aria-label="Project links">
+                      {project.data.links.map((link, i) => (
+                        <a
+                          class={`btn ${i === 0 ? 'btn--primary' : 'btn--ghost'}`}
+                          href={link.url}
+                          target="_blank"
+                          rel="external noreferrer"
+                        >
+                          {link.label}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </article>
+            );
+          })
+        }
+      </div>
+    </section>
+  </div>
+</Base>

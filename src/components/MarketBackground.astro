@@ -1,0 +1,158 @@
+<div class="market-background" aria-hidden="true">
+  <div class="market-container">
+    <canvas id="market-canvas"></canvas>
+  </div>
+</div>
+
+<script>
+  const canvas = document.getElementById('market-canvas') as HTMLCanvasElement;
+  const container = canvas.parentElement as HTMLElement;
+  const ctx = canvas.getContext('2d');
+
+  const BG = '#0a0e12';
+  const UP = '0, 212, 170';
+  const DOWN = '255, 91, 87';
+  const LINE = '#36f2c2';
+  const STEP = 11;
+  const FRAMES_PER_CANDLE = 9;
+  const MU = 0.0004;
+  const SIGMA = 0.006;
+
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  interface Candle {
+    o: number;
+    h: number;
+    l: number;
+    c: number;
+  }
+
+  let candles: Candle[] = [];
+  let width = 0;
+  let height = 0;
+  let offset = 0;
+  let viewMin = 0;
+  let viewMax = 1;
+
+  const randn = () => {
+    let u = 0;
+    let v = 0;
+    while (u === 0) u = Math.random();
+    while (v === 0) v = Math.random();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  };
+
+  function nextCandle(prevClose: number): Candle {
+    const o = prevClose;
+    const c = o * Math.exp(MU + SIGMA * randn());
+    const wick = Math.abs(randn()) * SIGMA * 0.7;
+    return {
+      o,
+      c,
+      h: Math.max(o, c) * Math.exp(wick),
+      l: Math.min(o, c) * Math.exp(-wick),
+    };
+  }
+
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    width = container.clientWidth;
+    height = container.clientHeight;
+    canvas.width = Math.floor(width * dpr);
+    canvas.height = Math.floor(height * dpr);
+    ctx?.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const count = Math.ceil(width / STEP) + 2;
+    let price = 100;
+    candles = Array.from({ length: count }, () => {
+      const k = nextCandle(price);
+      price = k.c;
+      return k;
+    });
+    const logs = candles.map((k) => Math.log(k.c));
+    viewMin = Math.min(...logs);
+    viewMax = Math.max(...logs);
+    offset = 0;
+  }
+
+  const yFor = (logPrice: number) => {
+    const pad = height * 0.12;
+    const span = Math.max(viewMax - viewMin, 1e-6);
+    return pad + ((viewMax - logPrice) / span) * (height - 2 * pad);
+  };
+
+  function draw() {
+    if (!ctx) return;
+    ctx.fillStyle = BG;
+    ctx.fillRect(0, 0, width, height);
+
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(222, 232, 255, 0.045)';
+    for (let i = 1; i < 5; i++) {
+      const y = (height / 5) * i;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(width, y);
+      ctx.stroke();
+    }
+
+    const logs = candles.map((k) => Math.log(k.c));
+    const lo = Math.min(...logs);
+    const hi = Math.max(...logs);
+    const padLog = Math.max((hi - lo) * 0.12, 0.01);
+    viewMin += (lo - padLog - viewMin) * 0.08;
+    viewMax += (hi + padLog - viewMax) * 0.08;
+
+    const bodyW = Math.max(3, STEP - 5);
+
+    candles.forEach((k, i) => {
+      const x = i * STEP - offset;
+      if (x < -STEP || x > width + STEP) return;
+      const col = k.c >= k.o ? UP : DOWN;
+      const alpha = 0.16 + (i % 4) * 0.05;
+      ctx.strokeStyle = `rgba(${col}, ${alpha + 0.1})`;
+      ctx.beginPath();
+      ctx.moveTo(x, yFor(Math.log(k.h)));
+      ctx.lineTo(x, yFor(Math.log(k.l)));
+      ctx.stroke();
+      const yO = yFor(Math.log(k.o));
+      const yC = yFor(Math.log(k.c));
+      ctx.fillStyle = `rgba(${col}, ${alpha})`;
+      ctx.fillRect(x - bodyW / 2, Math.min(yO, yC), bodyW, Math.max(1.5, Math.abs(yC - yO)));
+    });
+
+    ctx.beginPath();
+    candles.forEach((k, i) => {
+      const x = i * STEP - offset;
+      const y = yFor(Math.log(k.c));
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = LINE;
+    ctx.globalAlpha = 0.5;
+    ctx.lineWidth = 1.25;
+    ctx.shadowColor = LINE;
+    ctx.shadowBlur = 8;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
+  }
+
+  function tick() {
+    offset += STEP / FRAMES_PER_CANDLE;
+    if (offset >= STEP) {
+      offset -= STEP;
+      candles.shift();
+      candles.push(nextCandle(candles[candles.length - 1].c));
+    }
+    draw();
+    requestAnimationFrame(tick);
+  }
+
+  resize();
+  window.addEventListener('resize', resize);
+  if (reduce) {
+    draw();
+  } else {
+    requestAnimationFrame(tick);
+  }
+</script>

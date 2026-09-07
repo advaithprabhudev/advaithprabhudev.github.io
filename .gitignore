@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.astro/
+.vercel/
+brand_assets/
+.env
+.env.*
+.vercel
+.env*
