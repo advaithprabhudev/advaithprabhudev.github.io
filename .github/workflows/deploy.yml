@@ -35,3 +35,37 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  enforce-https:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enable Enforce HTTPS once a certificate is issued
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          api="https://api.github.com/repos/${GITHUB_REPOSITORY}/pages"
+          auth=(-H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json")
+
+          cfg=$(curl -sf "${auth[@]}" "$api")
+          cname=$(jq -r '.cname // "none"' <<<"$cfg")
+          enforced=$(jq -r '.https_enforced' <<<"$cfg")
+          cert_state=$(jq -r '.https_certificate.state // "none"' <<<"$cfg")
+          echo "cname=${cname} https_enforced=${enforced} cert_state=${cert_state} build_type=$(jq -r '.build_type' <<<"$cfg")"
+
+          if [ "$cname" != "advaithprabhu.me" ]; then
+            echo "unexpected cname; not touching https_enforced"
+            exit 0
+          fi
+          if [ "$enforced" = "true" ]; then
+            echo "already enforced"
+            exit 0
+          fi
+          if [ "$cert_state" != "approved" ]; then
+            echo "certificate not approved yet; skipping so the live site is not redirected to a bad cert"
+            exit 0
+          fi
+
+          curl -sf -X PATCH "${auth[@]}" "$api" -d '{"https_enforced": true}' >/dev/null
+          echo "Enforce HTTPS enabled"
